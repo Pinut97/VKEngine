@@ -9,9 +9,11 @@ VulkanSwapChain::VulkanSwapChain()
 VulkanSwapChain::~VulkanSwapChain()
 {
 	VkDevice device = device_->Handle();
-	for (auto& imgView : scImageViews)
-		vkDestroyImageView(device, imgView->Handle(), nullptr);
-	vkDestroySwapchainKHR(device, swapChain, nullptr);
+
+	if (swapChain_ != nullptr) {
+		vkDestroySwapchainKHR(device, swapChain_, nullptr);
+		swapChain_ = nullptr;
+	}
 }
 
 // Function that queries the capabilities, format and present modes of the swap chain and stores in the
@@ -66,7 +68,9 @@ VkExtent2D VulkanSwapChain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& cap
 	if (capabilites.currentExtent.width != UINT32_MAX)
 		return capabilites.currentExtent;
 	else {
-		VkExtent2D actualExtent = { WIDTH, HEIGHT };
+		int width, height;
+		glfwGetFramebufferSize(VulkanApplication::Instance()->window, &width, &height);
+		VkExtent2D actualExtent = { (uint32_t)width, (uint32_t)height };
 
 		actualExtent.width	= std::max(capabilites.currentExtent.width, std::min(capabilites.maxImageExtent.width, actualExtent.width));
 		actualExtent.height = std::max(capabilites.currentExtent.height, std::min(capabilites.maxImageExtent.height, actualExtent.height));
@@ -79,9 +83,9 @@ void VulkanSwapChain::createSwapChain()
 {
 	VulkanApplication* app = VulkanApplication::Instance();
 
-	device_ = (VulkanDevice*)app->DeviceObj();
+	device_ = (VulkanDevice*)app->Device();
 
-	scPrivateVariables.swapChainSupportedDetails = querySwapChainSupport(app->DeviceObj()->GPU());
+	scPrivateVariables.swapChainSupportedDetails = querySwapChainSupport(app->Device()->GPU());
 
 	scPrivateVariables.extent			= chooseSwapExtent(scPrivateVariables.swapChainSupportedDetails.capabilites);
 	scPrivateVariables.presentMode		= chooseSwapPresentMode(scPrivateVariables.swapChainSupportedDetails.presentModes);
@@ -95,7 +99,7 @@ void VulkanSwapChain::createSwapChain()
 		scPrivateVariables.scImageCount = scPrivateVariables.swapChainSupportedDetails.capabilites.maxImageCount;
 
 	scPublicVariables.surface		= app->Surface();
-	QueueFamilyIndices indices		= app->DeviceObj()->Indices();
+	QueueFamilyIndices indices		= app->Device()->Indices();
 	uint32_t queueFamilyIndices[]	= { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
 	VkSwapchainCreateInfoKHR createInfo{};
@@ -122,15 +126,15 @@ void VulkanSwapChain::createSwapChain()
 	createInfo.clipped				= VK_TRUE;
 	createInfo.oldSwapchain			= VK_NULL_HANDLE;
 
-	VkDevice device = app->DeviceObj()->Handle();
+	VkDevice device = app->Device()->Handle();
 
-	if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS)
+	if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain_) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create swap chain!");
 
-	if (vkGetSwapchainImagesKHR(device, swapChain, &scPrivateVariables.scImageCount, nullptr) != VK_SUCCESS)
+	if (vkGetSwapchainImagesKHR(device, swapChain_, &scPrivateVariables.scImageCount, nullptr) != VK_SUCCESS)
 		throw std::runtime_error("Failed to get swap chain image count!");
 	scPrivateVariables.scImages.resize(scPrivateVariables.scImageCount);
-	if (vkGetSwapchainImagesKHR(device, swapChain, &scPrivateVariables.scImageCount, scPrivateVariables.scImages.data()) != VK_SUCCESS)
+	if (vkGetSwapchainImagesKHR(device, swapChain_, &scPrivateVariables.scImageCount, scPrivateVariables.scImages.data()) != VK_SUCCESS)
 		throw std::runtime_error("Failed to get swap chain images!");
 
 	for (const auto image : scPrivateVariables.scImages)

@@ -14,6 +14,8 @@ class CommandBuffers;
 class Semaphore;
 class Fence;
 
+static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+
 class VulkanApplication final{
 public:
 
@@ -28,11 +30,12 @@ public:
 	}
 
 	GLFWwindow* window;
+	bool frambufferResized = false;
 
 	void run();
 
 	VkSurfaceKHR Surface() const { return surface; }
-	VulkanDevice* DeviceObj() const { return deviceObj; }
+	VulkanDevice* Device() const { return device_; }
 	VulkanSwapChain* SwapChain() const { return swapChain_; }
 
 	const std::vector<VkExtensionProperties>& Extensions() const	{	return extensions;	}
@@ -57,6 +60,9 @@ private:
 	void createSwapChain();
 	void createGraphicsPipeline();
 
+	void recreateSwapChain();
+	void cleanupSwapChain();
+
 	std::vector<VkExtensionProperties>	extensions;
 	std::vector<VkPhysicalDevice>		physicalDevices;
 	std::vector<const char*>			validationLayers;
@@ -67,7 +73,7 @@ private:
 	VkInstance					instance;
 	VkDebugUtilsMessengerEXT	debugMessenger;
 	VkSurfaceKHR				surface;
-	VulkanDevice*				deviceObj;
+	VulkanDevice*				device_;
 	VulkanSwapChain*			swapChain_ = nullptr;
 	GraphicsPipeline*			graphicsPipeline_;
 	CommandPool*				commandPool_;
@@ -77,7 +83,7 @@ private:
 	std::vector<Semaphore>		renderFinishedSemaphore_;
 	std::vector<Fence>			inFlightFences_;
 
-	size_t currentFrame_;
+	size_t currentFrame_	= 0;
 
 	bool checkValidationLayerSupport(std::vector<const char*> validationLayers);
 	std::vector<const char*> getRequiredExtensions();

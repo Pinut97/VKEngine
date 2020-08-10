@@ -31,5 +31,8 @@ ImageView::ImageView(const class VulkanDevice& device, const VkImage image, cons
 
 ImageView::~ImageView()
 {
-	//vkDestroyImageView(VulkanApplication::Instance()->DeviceObj()->Handle(), imageView_, nullptr);
+	if (imageView_ != nullptr){
+		vkDestroyImageView(device_.Handle(), imageView_, nullptr);
+		imageView_ = nullptr;
+	}
 }
