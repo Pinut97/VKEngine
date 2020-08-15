@@ -3,6 +3,7 @@
 #include "headers.h"
 #include "VulkanDevice.h"
 #include "VulkanSwapChain.h"
+#include "Vertex.h"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -14,7 +15,16 @@ class CommandBuffers;
 class Semaphore;
 class Fence;
 
+//temp
+class Buffer;
+
 static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+
+const std::vector<Vertex> vertices = {
+	{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+	{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+	{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+};
 
 class VulkanApplication final{
 public:
@@ -84,6 +94,16 @@ private:
 	std::vector<Fence>			inFlightFences_;
 
 	size_t currentFrame_	= 0;
+
+	//temp
+	Buffer* buffer_;
+
+	void createVertexBuffer();
+	VkBuffer vertexBuffer_;
+	uint32_t findMemoryTypes(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+	VkDeviceMemory memory_;
+
+	bool aux = true;
 
 	bool checkValidationLayerSupport(std::vector<const char*> validationLayers);
 	std::vector<const char*> getRequiredExtensions();

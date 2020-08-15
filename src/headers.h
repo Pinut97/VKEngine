@@ -9,6 +9,7 @@
 #include <mutex>
 #include <algorithm>
 #include <optional>
+#include <array>
 
 /******** GLFW HEADERS ***********/
 #define GLFW_INCLUDE_VULKAN
@@ -16,6 +17,8 @@
 
 /******** VULKAN HEADERS ***********/
 #include <vulkan/vulkan.h>
+
+#include <glm/glm.hpp>
 
 const bool enableValidationLayers =
 #ifdef _DEBUG
