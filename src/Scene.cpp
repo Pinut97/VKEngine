@@ -4,7 +4,8 @@
 #include "Vertex.h"
 #include "CommandPool.h"
 
-void CopyFromStagingBuffer(CommandPool& commandPool, Buffer& dstBuffer, const std::vector<Vertex>& content)
+template <class T>
+void CopyFromStagingBuffer(CommandPool& commandPool, Buffer& dstBuffer, const std::vector<T>& content)
 {
 	const auto& device = commandPool.Device();
 	const auto contentSize = sizeof(content[0]) * content.size();
@@ -22,35 +23,40 @@ void CopyFromStagingBuffer(CommandPool& commandPool, Buffer& dstBuffer, const st
 	dstBuffer.copyFrom(commandPool, *stagingBuffer, contentSize);
 
 	// Delete the buffer before the memory
-	//stagingBuffer.reset();
+	stagingBuffer.reset();
 }
 
+template <class T>
 void createDeviceBuffer(
 	CommandPool& commandPool,
 	const VkBufferUsageFlags usage,
-	const std::vector<Vertex>& vertices,
+	const std::vector<T>& content,
 	std::unique_ptr<Buffer>& buffer,
 	std::unique_ptr<DeviceMemory>& memory)
 {
 	const auto& device = commandPool.Device();
-	VkDeviceSize contentSize = sizeof(vertices[0]) * vertices.size();
+	VkDeviceSize contentSize = sizeof(content[0]) * content.size();
 
 	buffer = std::unique_ptr<Buffer>(new Buffer(device, contentSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage));
 	memory = std::unique_ptr<DeviceMemory>(new DeviceMemory(buffer->allocateMemory(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)));
 
-	CopyFromStagingBuffer(commandPool, *buffer, vertices);
+	CopyFromStagingBuffer(commandPool, *buffer, content);
 }
 
 Scene::Scene(class CommandPool& commandPool) : 
 	commandPool_(commandPool)
 {
 	vertices = {
-		{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-		{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-		{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+		{{ 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+		{{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}},
+		{{-0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}}
 	};
 
+	indices = { 0, 1, 2, 2, 3, 0 };
+
 	createDeviceBuffer(commandPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertices, vertexBuffer_, vertexBufferMemory_);
+	createDeviceBuffer(commandPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, indices, indexBuffer_, indexBufferMemory_);
 	
 }
 

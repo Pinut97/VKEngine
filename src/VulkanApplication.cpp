@@ -128,12 +128,15 @@ void VulkanApplication::render(VkCommandBuffer commandBuffer, const uint32_t ima
 	renderPassInfo.pClearValues			= &clearColor;
 
 	VkBuffer vertexBuffers[] = { scene_->VertexBuffer().Handle() };
+	VkBuffer indexBuffers[] = { scene_->IndexBuffer().Handle() };
 	VkDeviceSize offsets[] = { 0 };
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline_->Handle());
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+		vkCmdBindIndexBuffer(commandBuffer, *indexBuffers, 0, VK_INDEX_TYPE_UINT32);
+		//vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, scene_->Indices().size(), 1, 0, 0, 0);
 	vkCmdEndRenderPass(commandBuffer);
 }
 
