@@ -8,8 +8,10 @@
 #include "RenderPass.h"
 #include "Semaphore.h"
 #include "Fence.h"
+#include "Scene.h"
 
 //temp
+#include "DeviceMemory.h"
 #include "Buffer.h"
 
 VulkanApplication* VulkanApplication::appInstance = nullptr;
@@ -86,7 +88,8 @@ void VulkanApplication::initVulkan()
 	device_ = new VulkanDevice(&instance);
 	createSwapChain();
 	createGraphicsPipeline();
-	createVertexBuffer();
+	//createVertexBuffer();
+	scene_ = new Scene(*commandPool_);
 
 }
 
@@ -111,41 +114,6 @@ uint32_t VulkanApplication::findMemoryTypes(uint32_t typeFilter, VkMemoryPropert
 	throw std::runtime_error("Failed to find suitable memory type!");
 }
 
-void VulkanApplication::createVertexBuffer()
-{
-
-	buffer_ = new Buffer(device_->Handle(), sizeof(vertices[0] =* vertices.size()), )
-
-	VkBufferCreateInfo bufferInfo{};
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferInfo.size = sizeof(vertices[0]) * vertices.size();
-	bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-	if (vkCreateBuffer(device_->Handle(), &bufferInfo, nullptr, &vertexBuffer_) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create vertex buffer!");
-
-	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(device_->Handle(), vertexBuffer_, &memRequirements);
-
-	VkMemoryAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = findMemoryTypes(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-		VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-	if (vkAllocateMemory(device_->Handle(), &allocInfo, nullptr, &memory_) != VK_SUCCESS)
-		throw std::runtime_error("Failed to allocate vertex buffer memory!");
-
-	vkBindBufferMemory(device_->Handle(), vertexBuffer_, memory_, 0);
-
-	void* data;
-	vkMapMemory(device_->Handle(), memory_, 0, bufferInfo.size, 0, &data);
-	std::memcpy(data, vertices.data(), bufferInfo.size);
-	vkUnmapMemory(device_->Handle(), memory_);
-
-}
-
 void VulkanApplication::render(VkCommandBuffer commandBuffer, const uint32_t imageIndex)
 {
 	VkClearValue clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -158,14 +126,8 @@ void VulkanApplication::render(VkCommandBuffer commandBuffer, const uint32_t ima
 	renderPassInfo.renderArea.extent	= swapChain_->Extent();
 	renderPassInfo.clearValueCount		= 1;
 	renderPassInfo.pClearValues			= &clearColor;
-	
-	if (aux)
-	{
-		//createVertexBuffer();
-		aux = false;
-	}
 
-	VkBuffer vertexBuffers[] = { vertexBuffer_ };
+	VkBuffer vertexBuffers[] = { scene_->VertexBuffer().Handle() };
 	VkDeviceSize offsets[] = { 0 };
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -250,10 +212,6 @@ void VulkanApplication::drawFrame()
 void VulkanApplication::cleanup()
 {
 	cleanupSwapChain();
-	vkDestroyBuffer(device_->Handle(), vertexBuffer_, nullptr);
-	vkFreeMemory(device_->Handle(), memory_, nullptr);
-	//for (auto framebuffer : framebuffers_)
-	//	vkDestroyFramebuffer(device_->Handle(), framebuffer->Handle(), nullptr);
 
 	if (enableValidationLayers)
 		DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
