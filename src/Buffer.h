@@ -23,6 +23,6 @@ public:
 private:
 
 	VkBuffer					buffer_;
-	const class VulkanDevice& device_;
+	const class VulkanDevice&	device_;
 	const size_t				size_;
 };

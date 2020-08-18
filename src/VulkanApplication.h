@@ -15,19 +15,9 @@ class CommandBuffers;
 class Semaphore;
 class Fence;
 class Scene;
-
-//temp
-class Buffer;
+class UniformBuffer;
 
 static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
-
-/*
-const std::vector<Vertex> vertices = {
-	{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-	{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-	{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
-};
-*/
 
 class VulkanApplication final{
 public:
@@ -72,6 +62,7 @@ private:
 	void createSurface();
 	void createSwapChain();
 	void createGraphicsPipeline();
+	void updateUniformBuffer(const uint32_t imageIndex);
 
 	void recreateSwapChain();
 	void cleanupSwapChain();
@@ -95,6 +86,7 @@ private:
 	std::vector<Semaphore>		imageAvailableSemaphore_;
 	std::vector<Semaphore>		renderFinishedSemaphore_;
 	std::vector<Fence>			inFlightFences_;
+	std::vector<UniformBuffer>	uniformBuffers_;
 	Scene*						scene_;
 
 	size_t currentFrame_	= 0;

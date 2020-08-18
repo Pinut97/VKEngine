@@ -40,6 +40,7 @@ public:
 
 	const VkExtent2D Extent() const { return scPrivateVariables.extent; }
 	const class VulkanDevice* Device() const { return device_; }
+	const std::vector<VkImage> Images() const { return scPrivateVariables.scImages; }
 	const std::vector<std::unique_ptr<ImageView>>& ImageViews() const { return scImageViews; }
 	const VkSwapchainKHR& Handle() const { return swapChain_; }
 

@@ -1,16 +1,17 @@
 #pragma once
 #include "headers.h"
+//#include "Buffer.h"
 
-class Buffer;
 class DeviceMemory;
 class Vertex;
+class TextureImage;
+class Buffer;
 
 class Scene final{
 public:
 	
 	Scene(class CommandPool& commandPool);
 	~Scene();
-
 
 	//std::vector<Vertex> getVertices() { return vertices; }
 	const std::vector<uint32_t> Indices() const { return indices; }
@@ -29,4 +30,6 @@ private:
 
 	std::unique_ptr<Buffer> indexBuffer_;
 	std::unique_ptr<DeviceMemory> indexBufferMemory_;
+
+	std::vector<std::unique_ptr<TextureImage>> textureImages_;
 };

@@ -1,6 +1,7 @@
 #include "Buffer.h"
 #include "CommandPool.h"
 #include "CommandBuffers.h"
+#include "HelperFunctions.h"
 
 Buffer::Buffer(const class VulkanDevice& device, const size_t size, const VkBufferUsageFlags usage) :
 	device_(device),
@@ -48,12 +49,7 @@ void Buffer::copyFrom(CommandPool& commandPool, const Buffer src, VkDeviceSize s
 
 	CommandBuffers commandBuffers(commandPool, 1);
 
-	// Createa a unique begin info for copy purposes
-	VkCommandBufferBeginInfo beginInfo{};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;	// Telling the driver we're using it just once
-
-	vkBeginCommandBuffer(commandBuffers[0], &beginInfo);
+	commandBuffers[0] =  beginSingleTimeCommands(commandPool);
 
 	VkBufferCopy copyRegion{};
 	copyRegion.dstOffset	= 0;
@@ -64,13 +60,6 @@ void Buffer::copyFrom(CommandPool& commandPool, const Buffer src, VkDeviceSize s
 
 	vkEndCommandBuffer(commandBuffers[0]);
 
-	// Once the command has been stored, submit to the graphics queue
-	VkSubmitInfo submitInfo{};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &commandBuffers[0];
-
 	const auto graphicsQueue = commandPool.Device().GraphicsQueue();
-	vkQueueSubmit(graphicsQueue, 1, &submitInfo, nullptr);
-	vkQueueWaitIdle(graphicsQueue);
+	endSingleTimeCommand(commandBuffers[0], graphicsQueue, commandPool);
 }

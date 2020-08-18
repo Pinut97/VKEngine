@@ -8,11 +8,14 @@
 #include "RenderPass.h"
 #include "Semaphore.h"
 #include "Fence.h"
+#include "UniformBuffer.h"
+
+//temp?
+#include "Buffer.h"
 #include "Scene.h"
 
-//temp
-#include "DeviceMemory.h"
-#include "Buffer.h"
+#include "DescriptorSet.h"
+#include "DescriptorSetLayout.h"
 
 VulkanApplication* VulkanApplication::appInstance = nullptr;
 
@@ -88,7 +91,6 @@ void VulkanApplication::initVulkan()
 	device_ = new VulkanDevice(&instance);
 	createSwapChain();
 	createGraphicsPipeline();
-	//createVertexBuffer();
 	scene_ = new Scene(*commandPool_);
 
 }
@@ -131,10 +133,13 @@ void VulkanApplication::render(VkCommandBuffer commandBuffer, const uint32_t ima
 	VkBuffer indexBuffers[] = { scene_->IndexBuffer().Handle() };
 	VkDeviceSize offsets[] = { 0 };
 
+	VkDescriptorSet descriptorSet[] = { graphicsPipeline_->DescriptorSet().Handle(imageIndex) };
+
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline_->Handle());
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 		vkCmdBindIndexBuffer(commandBuffer, *indexBuffers, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline_->PipelineLayout(), 0, 1, descriptorSet, 0, nullptr);
 		//vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 		vkCmdDrawIndexed(commandBuffer, scene_->Indices().size(), 1, 0, 0, 0);
 	vkCmdEndRenderPass(commandBuffer);
@@ -150,6 +155,7 @@ void VulkanApplication::drawFrame()
 
 	uint32_t imageIndex;
 	auto result = vkAcquireNextImageKHR(device_->Handle(), swapChain_->Handle(), UINT64_MAX, imageAvailableSemaphore, nullptr, &imageIndex);
+
 	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 		recreateSwapChain();
 		return;
@@ -166,6 +172,8 @@ void VulkanApplication::drawFrame()
 	const auto commandBuffer = commandBuffers_->Begin(imageIndex);
 	render(commandBuffer, imageIndex);
 	commandBuffers_->End(imageIndex);
+
+	updateUniformBuffer(imageIndex);
 
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -312,6 +320,22 @@ void VulkanApplication::createSurface()
 		throw std::runtime_error("Failed to create surface!");
 }
 
+void VulkanApplication::updateUniformBuffer(const uint32_t imageIndex)
+{
+	static auto startTime = std::chrono::high_resolution_clock::now();
+
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+	UniformBufferObject ubo = {};
+	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.proj = glm::perspective(glm::radians(45.0f), swapChain_->Extent().width / (float)swapChain_->Extent().height, 0.1f, 10.0f);
+	ubo.proj[1][1] *= -1;
+
+	uniformBuffers_[imageIndex].setValue(ubo);
+}
+
 void VulkanApplication::createSwapChain()
 {
 	swapChain_->createSwapChain();
@@ -321,6 +345,7 @@ void VulkanApplication::createSwapChain()
 		imageAvailableSemaphore_.emplace_back(*device_);
 		renderFinishedSemaphore_.emplace_back(*device_);
 		inFlightFences_.emplace_back(*device_, true);
+		uniformBuffers_.emplace_back(*device_);
 	}
 }
 
@@ -355,7 +380,7 @@ void VulkanApplication::cleanupSwapChain()
 void VulkanApplication::createGraphicsPipeline()
 {
 	//--- CREATE GRAPHICS PIPELINE --
-	graphicsPipeline_ = new GraphicsPipeline(*device_, *swapChain_, false);
+	graphicsPipeline_ = new GraphicsPipeline(*device_, *swapChain_, uniformBuffers_, false);
 
 	//--- CREATE FRAMEBUFFERS ---
 	for (const auto& imageView : swapChain_->ImageViews())

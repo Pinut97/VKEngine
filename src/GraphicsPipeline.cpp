@@ -3,12 +3,18 @@
 #include "ShaderModule.h"
 #include "VulkanSwapChain.h"
 #include "RenderPass.h"
+#include "DescriptorPool.h"
+#include "DescriptorSetLayout.h"
+#include "DescriptorSet.h"
+#include "UniformBuffer.h"
+#include "Buffer.h"
 
 #include "VulkanApplication.h"
 
 GraphicsPipeline::GraphicsPipeline(
 	const VulkanDevice& device,
 	const VulkanSwapChain& swapChain,
+	const std::vector<UniformBuffer>& uniformBuffers,
 	const bool isWireFrame
 ) : device_(device), swapChain_(swapChain), isWireFrame_(isWireFrame)
 {
@@ -68,7 +74,7 @@ GraphicsPipeline::GraphicsPipeline(
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizer.lineWidth = 1.0f;
 	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-	rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
 	VkPipelineMultisampleStateCreateInfo multisampling{};
 	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -86,6 +92,48 @@ GraphicsPipeline::GraphicsPipeline(
 	colorBlending.logicOp = VK_LOGIC_OP_COPY;
 	colorBlending.attachmentCount = 1;
 	colorBlending.pAttachments = &colorBlendAttachment;
+
+	// TODO: create descriptor manager!
+
+	std::vector<DescriptorBinding> descriptorBinding = {
+		{0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT}
+	};
+
+	std::map<uint32_t, VkDescriptorType> bindingTypes;
+
+	for (const auto& binding : descriptorBinding) {
+		if (!bindingTypes.insert(std::make_pair(binding.binding, binding.type)).second)
+			throw std::invalid_argument("binding collision");
+	}
+
+	descriptorPool_			= new DescriptorPool(device_, descriptorBinding, swapChain_.ImageViews().size());
+	descriptorSetLayout_	= new DescriptorSetLayout(device_);
+	descriptorSet_			= new class DescriptorSet(*descriptorPool_, *descriptorSetLayout_, bindingTypes, uniformBuffers.size());
+
+	auto& descriptorSets = descriptorSet_->DescriptorSets();
+
+	for (uint32_t i = 0; i != swapChain_.Images().size(); i++)
+	{
+		// Uniform buffer
+		VkDescriptorBufferInfo uniformBufferInfo{};
+		uniformBufferInfo.buffer	= uniformBuffers[i].Buffer().Handle();
+		uniformBufferInfo.offset	= 0;
+		uniformBufferInfo.range		= VK_WHOLE_SIZE;
+
+		VkWriteDescriptorSet descriptorWrite{};
+		descriptorWrite.sType				= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite.descriptorType		= VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrite.descriptorCount		= 1;
+		descriptorWrite.dstBinding			= 0;
+		descriptorWrite.dstArrayElement		= 0;
+		descriptorWrite.dstSet				= descriptorSets[i];
+		descriptorWrite.pBufferInfo			= &uniformBufferInfo;
+		descriptorWrite.pImageInfo			= nullptr;
+		descriptorWrite.pTexelBufferView	= nullptr;
+
+		vkUpdateDescriptorSets(device_.Handle(), 1, &descriptorWrite, 0, nullptr);
+
+	}
 	
 	//--- PIPELINE LAYOUT ---
 	VkDynamicState dynamicStates[] =
@@ -100,8 +148,9 @@ GraphicsPipeline::GraphicsPipeline(
 	dynamicState.pDynamicStates = dynamicStates;
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 0;
+	pipelineLayoutInfo.sType			= VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipelineLayoutInfo.setLayoutCount	= 1;
+	pipelineLayoutInfo.pSetLayouts		= &descriptorSetLayout_->Handle();
 
 	if (vkCreatePipelineLayout(device.Handle(), &pipelineLayoutInfo, nullptr, &pipelineLayout_) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create pipeline layout!");

@@ -1,8 +1,10 @@
 
 #include "Scene.h"
-#include "Buffer.h"
 #include "Vertex.h"
 #include "CommandPool.h"
+#include "Texture.h"
+#include "TextureImage.h"
+#include "Buffer.h"
 
 template <class T>
 void CopyFromStagingBuffer(CommandPool& commandPool, Buffer& dstBuffer, const std::vector<T>& content)
@@ -57,7 +59,9 @@ Scene::Scene(class CommandPool& commandPool) :
 
 	createDeviceBuffer(commandPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertices, vertexBuffer_, vertexBufferMemory_);
 	createDeviceBuffer(commandPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, indices, indexBuffer_, indexBufferMemory_);
-	
+
+	textureImages_.push_back(std::unique_ptr<TextureImage>(new TextureImage(commandPool, Texture::loadTexture("../../data/textures/sanFrancisco.jpg"))));
+
 }
 
 Scene::~Scene()
