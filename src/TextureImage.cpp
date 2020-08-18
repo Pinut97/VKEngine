@@ -29,3 +29,9 @@ TextureImage::TextureImage(CommandPool& commandPool, const Texture& texture)
 	image_->transitionImageLayout(commandPool, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 }
+
+TextureImage::~TextureImage()
+{
+	image_.reset();
+	imageMemory_.reset();
+}

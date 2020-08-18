@@ -10,8 +10,7 @@ Texture Texture::loadTexture(const std::string& filename)
 
 	// Load the texture in normal host memory.
 	int width, height, channels;
-	stbi_uc* pixels = stbi_load("textures/texture.jpg", &width, &height, &channels, STBI_rgb_alpha);
-	VkDeviceSize imageSize = width * height * 4;
+	stbi_uc* pixels = stbi_load(filename.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
 	if (!pixels)
 		throw std::runtime_error("failed to load texture image!");

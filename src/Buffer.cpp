@@ -58,8 +58,6 @@ void Buffer::copyFrom(CommandPool& commandPool, const Buffer src, VkDeviceSize s
 
 	vkCmdCopyBuffer(commandBuffers[0], src.Handle(), Handle(), 1, &copyRegion);
 
-	vkEndCommandBuffer(commandBuffers[0]);
-
 	const auto graphicsQueue = commandPool.Device().GraphicsQueue();
 	endSingleTimeCommand(commandBuffers[0], graphicsQueue, commandPool);
 }

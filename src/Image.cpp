@@ -36,6 +36,14 @@ Image::Image(const VulkanDevice& device, VkExtent2D extent, VkFormat format, VkI
 		throw std::runtime_error("Failed to create image!");
 }
 
+Image::~Image()
+{
+	if (image_ != nullptr) {
+		vkDestroyImage(device_.Handle(), image_, nullptr);
+		image_ = nullptr;
+	}
+}
+
 VkMemoryRequirements Image::getMemoryRequirements() const
 {
 	VkMemoryRequirements memRequirements;

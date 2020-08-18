@@ -6,8 +6,8 @@ public:
 
 	static Texture loadTexture(const std::string& filename);
 
-	Texture();
-	~Texture();
+	Texture() = default;
+	~Texture() = default;
 
 	const unsigned char* Pixels() const { return pixels_.get(); }
 	int Width() const { return width_; }
