@@ -8,13 +8,16 @@
 #include "DescriptorSet.h"
 #include "UniformBuffer.h"
 #include "Buffer.h"
+#include "Vertex.h"
+#include "Scene.h"
 
-#include "VulkanApplication.h"
+//#include "VulkanApplication.h"
 
 GraphicsPipeline::GraphicsPipeline(
 	const VulkanDevice& device,
 	const VulkanSwapChain& swapChain,
 	const std::vector<UniformBuffer>& uniformBuffers,
+	const Scene& scene,
 	const bool isWireFrame
 ) : device_(device), swapChain_(swapChain), isWireFrame_(isWireFrame)
 {
@@ -37,7 +40,7 @@ GraphicsPipeline::GraphicsPipeline(
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	vertexInputInfo.vertexBindingDescriptionCount = 1;
 	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-	vertexInputInfo.vertexAttributeDescriptionCount = 2;
+	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescription.size());
 	vertexInputInfo.pVertexAttributeDescriptions = attributeDescription.data();
 
 	// Assembly
@@ -49,7 +52,7 @@ GraphicsPipeline::GraphicsPipeline(
 	// Viewport
 	VkViewport viewport{};
 	viewport.x = 0.0f;
-	viewport.y = 0.0;
+	viewport.y = 0.0f;
 	viewport.width = static_cast<float>(swapChain.Extent().width);
 	viewport.height = static_cast<float>(swapChain.Extent().height);
 	viewport.minDepth = 0.0f;
@@ -95,19 +98,20 @@ GraphicsPipeline::GraphicsPipeline(
 
 	// TODO: create descriptor manager!
 
-	std::vector<DescriptorBinding> descriptorBinding = {
-		{0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT}
+	std::vector<DescriptorBinding> descriptorBindings = {
+		{0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT},
+		{1, static_cast<uint32_t>(scene.TextureSamplers().size()), VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
 	};
 
 	std::map<uint32_t, VkDescriptorType> bindingTypes;
 
-	for (const auto& binding : descriptorBinding) {
+	for (const auto& binding : descriptorBindings) {
 		if (!bindingTypes.insert(std::make_pair(binding.binding, binding.type)).second)
 			throw std::invalid_argument("binding collision");
 	}
 
-	descriptorPool_			= new DescriptorPool(device_, descriptorBinding, swapChain_.ImageViews().size());
-	descriptorSetLayout_	= new DescriptorSetLayout(device_);
+	descriptorPool_			= new DescriptorPool(device_, descriptorBindings, swapChain_.ImageViews().size());
+	descriptorSetLayout_	= new DescriptorSetLayout(device_, descriptorBindings);
 	descriptorSet_			= new class DescriptorSet(*descriptorPool_, *descriptorSetLayout_, bindingTypes, uniformBuffers.size());
 
 	auto& descriptorSets = descriptorSet_->DescriptorSets();
@@ -120,18 +124,38 @@ GraphicsPipeline::GraphicsPipeline(
 		uniformBufferInfo.offset	= 0;
 		uniformBufferInfo.range		= VK_WHOLE_SIZE;
 
-		VkWriteDescriptorSet descriptorWrite{};
-		descriptorWrite.sType				= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.descriptorType		= VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorWrite.descriptorCount		= 1;
-		descriptorWrite.dstBinding			= 0;
-		descriptorWrite.dstArrayElement		= 0;
-		descriptorWrite.dstSet				= descriptorSets[i];
-		descriptorWrite.pBufferInfo			= &uniformBufferInfo;
-		descriptorWrite.pImageInfo			= nullptr;
-		descriptorWrite.pTexelBufferView	= nullptr;
+		std::vector<VkDescriptorImageInfo> imageInfos(scene.TextureSamplers().size());
 
-		vkUpdateDescriptorSets(device_.Handle(), 1, &descriptorWrite, 0, nullptr);
+		for (size_t t = 0; t < imageInfos.size(); t++)
+		{
+			auto& imageInfo = imageInfos[t];
+			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo.imageView = scene.ImageViewHandles()[t];
+			imageInfo.sampler = scene.TextureSamplers()[t];
+		}
+
+		std::array<VkWriteDescriptorSet, 2> descriptorWrite{};
+		descriptorWrite[0].sType				= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite[0].descriptorType		= VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrite[0].descriptorCount		= 1;
+		descriptorWrite[0].dstBinding			= 0;
+		descriptorWrite[0].dstArrayElement		= 0;
+		descriptorWrite[0].dstSet				= descriptorSets[i];
+		descriptorWrite[0].pBufferInfo			= &uniformBufferInfo;
+		descriptorWrite[0].pImageInfo			= nullptr;
+		descriptorWrite[0].pTexelBufferView		= nullptr;
+
+		descriptorWrite[1].sType			= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite[1].descriptorType	= VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrite[1].dstSet			= descriptorSets[i];
+		descriptorWrite[1].descriptorCount	= imageInfos.size();
+		descriptorWrite[1].dstBinding		= 1;
+		descriptorWrite[1].dstArrayElement	= 0;
+		descriptorWrite[1].pBufferInfo		= nullptr;
+		descriptorWrite[1].pImageInfo		= imageInfos.data();
+		descriptorWrite[1].pTexelBufferView = nullptr;
+
+		vkUpdateDescriptorSets(device_.Handle(), static_cast<uint32_t>(descriptorWrite.size()), descriptorWrite.data(), 0, nullptr);
 
 	}
 	

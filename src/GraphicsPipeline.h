@@ -8,6 +8,7 @@ class DescriptorPool;
 class DescriptorSet;
 class DescriptorSetLayout;
 class UniformBuffer;
+class Scene;
 
 class GraphicsPipeline {
 public:
@@ -15,6 +16,7 @@ public:
 		const VulkanDevice& device,
 		const VulkanSwapChain& swapChain,
 		const std::vector<UniformBuffer>& uniformBuffer,
+		const Scene& scene,
 		bool isWireFrame
 	);
 	~GraphicsPipeline();

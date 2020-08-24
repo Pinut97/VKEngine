@@ -13,8 +13,8 @@ DescriptorPool::DescriptorPool(const VulkanDevice& device, const std::vector<Des
 
 	VkDescriptorPoolCreateInfo poolInfo{};
 	poolInfo.sType			= VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	poolInfo.maxSets		= maxSets;
-	poolInfo.poolSizeCount	= poolSizes.size();
+	poolInfo.maxSets		= static_cast<uint32_t>(maxSets);
+	poolInfo.poolSizeCount	= static_cast<uint32_t>(poolSizes.size());
 	poolInfo.pPoolSizes		= poolSizes.data();
 
 	if (vkCreateDescriptorPool(device.Handle(), &poolInfo, nullptr, &descriptorPool_) != VK_SUCCESS)

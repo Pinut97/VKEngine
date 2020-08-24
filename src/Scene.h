@@ -3,13 +3,14 @@
 //#include "Buffer.h"
 
 class DeviceMemory;
-class Vertex;
+struct Vertex;
+class Texture;
 class TextureImage;
 class Buffer;
 
-class Scene final{
+class Scene final {
 public:
-	
+
 	Scene(class CommandPool& commandPool);
 	~Scene();
 
@@ -18,6 +19,8 @@ public:
 
 	const Buffer& VertexBuffer() const { return *vertexBuffer_; }
 	const Buffer& IndexBuffer() const { return *indexBuffer_; }
+	const std::vector<VkImageView>& ImageViewHandles() const { return textureImageViewHandles_; }
+	const std::vector<VkSampler>& TextureSamplers() const { return textureSamplerHandles_; }
 
 private:
 
@@ -31,5 +34,8 @@ private:
 	std::unique_ptr<Buffer> indexBuffer_;
 	std::unique_ptr<DeviceMemory> indexBufferMemory_;
 
+	//std::vector<Texture> textures_;
+	std::vector<VkImageView> textureImageViewHandles_;
 	std::vector<std::unique_ptr<TextureImage>> textureImages_;
+	std::vector<VkSampler> textureSamplerHandles_;
 };

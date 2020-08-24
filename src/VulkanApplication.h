@@ -36,6 +36,7 @@ public:
 	bool frambufferResized = false;
 
 	void run();
+	const Scene& getScene();
 
 	VkSurfaceKHR Surface() const { return surface; }
 	VulkanDevice* Device() const { return device_; }

@@ -5,6 +5,8 @@
 #include "Texture.h"
 #include "TextureImage.h"
 #include "Buffer.h"
+#include "ImageView.h"
+#include "Sampler.h"
 
 template <class T>
 void CopyFromStagingBuffer(CommandPool& commandPool, Buffer& dstBuffer, const std::vector<T>& content)
@@ -49,10 +51,10 @@ Scene::Scene(class CommandPool& commandPool) :
 	commandPool_(commandPool)
 {
 	vertices = {
-		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-		{{ 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-		{{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}},
-		{{-0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}}
+		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+		{{ 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+		{{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+		{{-0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
 	};
 
 	indices = { 0, 1, 2, 2, 3, 0 };
@@ -60,7 +62,20 @@ Scene::Scene(class CommandPool& commandPool) :
 	createDeviceBuffer(commandPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertices, vertexBuffer_, vertexBufferMemory_);
 	createDeviceBuffer(commandPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, indices, indexBuffer_, indexBufferMemory_);
 
-	textureImages_.push_back(std::unique_ptr<TextureImage>(new TextureImage(commandPool, Texture::loadTexture("../../data/textures/sanFrancisco.jpg"))));
+	//textures_.push_back(Texture::loadTexture("../../data/textures/sanFrancisco.jpg"));
+
+	std::vector<Texture> textures;
+	textures.push_back(Texture::loadTexture("../../data/textures/sanFrancisco.jpg"));
+
+	textureImages_.reserve(textures.size());
+	textureImageViewHandles_.resize(textures.size());
+	textureSamplerHandles_.resize(textures.size());
+	for (size_t i = 0; i < textures.size(); i++) {
+		textureImages_.emplace_back(new TextureImage(commandPool, textures[i]));
+		textureImageViewHandles_[i] = textureImages_[i]->ImageView().Handle();
+		textureSamplerHandles_[i] = textureImages_[i]->Sampler().Handle();
+	}
+	//textureImages_.push_back(std::unique_ptr<TextureImage>(new TextureImage(commandPool, Texture::loadTexture("../../data/textures/sanFrancisco.jpg"))));
 
 }
 

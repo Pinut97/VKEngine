@@ -90,8 +90,8 @@ void VulkanApplication::initVulkan()
 	swapChain_ = new VulkanSwapChain();
 	device_ = new VulkanDevice(&instance);
 	createSwapChain();
+	//scene_ = new Scene(*commandPool_);
 	createGraphicsPipeline();
-	scene_ = new Scene(*commandPool_);
 
 }
 
@@ -379,16 +379,17 @@ void VulkanApplication::cleanupSwapChain()
 
 void VulkanApplication::createGraphicsPipeline()
 {
+	//--- CREATE COMMAND POOL ---
+	commandPool_ = new CommandPool(*device_, device_->Indices().graphicsFamily.value(), true);
+
 	//--- CREATE GRAPHICS PIPELINE --
-	graphicsPipeline_ = new GraphicsPipeline(*device_, *swapChain_, uniformBuffers_, false);
+	graphicsPipeline_ = new GraphicsPipeline(*device_, *swapChain_, uniformBuffers_, getScene(), false);
 
 	//--- CREATE FRAMEBUFFERS ---
 	for (const auto& imageView : swapChain_->ImageViews())
 	{
 		framebuffers_.push_back(new Framebuffer(*imageView, graphicsPipeline_->RenderPass()));
 	}
-	//--- CREATE COMMAND POOL ---
-	commandPool_ = new CommandPool(*device_, device_->Indices().graphicsFamily.value(), true);
 
 	//--- CREATE COMMAND BUFFER ---
 	commandBuffers_ = new CommandBuffers(*commandPool_, framebuffers_.size());
@@ -430,4 +431,13 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 	if (func != nullptr) {
 		func(instance, debugMessenger, pAllocator);
 	}
+}
+
+const Scene& VulkanApplication::getScene()
+{
+	if (scene_ == nullptr)
+	{
+		scene_ = new Scene(*commandPool_);
+	}
+	return *scene_;
 }

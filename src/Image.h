@@ -15,7 +15,7 @@ public:
 
 	~Image();
 
-	const VkImage& Handle() const { return image_; }
+	const VkImage Handle() const { return image_; }
 	const VulkanDevice& Device() const { return device_; }
 	VkFormat Format() const { return format_; }
 	VkExtent2D Extent() const { return extent_; }
@@ -29,8 +29,8 @@ public:
 private:
 
 	const VulkanDevice&	device_;
-	const VkExtent2D&	extent_;
-	const VkFormat&		format_;
+	const VkExtent2D	extent_;
+	const VkFormat		format_;
 	VkImageLayout		imageLayout_;
 	VkImage				image_;
 
