@@ -3,20 +3,22 @@
 #include "RenderPass.h"
 #include "VulkanSwapChain.h"
 #include "VulkanDevice.h"
+#include "DepthBuffer.h"
 
 Framebuffer::Framebuffer(const class ImageView& imageView, const class RenderPass& renderPass) :
 	imageView_(imageView), renderPass_(renderPass)
 {
 
-	VkImageView attachments[] = {
-		imageView.Handle()
+	std::array<VkImageView, 2> attachments = {
+		imageView.Handle(),
+		renderPass.DepthBuffer().ImageView().Handle()
 	};
 
 	VkFramebufferCreateInfo framebufferInfo{};
 	framebufferInfo.sType			= VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 	framebufferInfo.renderPass		= renderPass.Handle();
-	framebufferInfo.attachmentCount = 1;
-	framebufferInfo.pAttachments	= attachments;
+	framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+	framebufferInfo.pAttachments	= attachments.data();
 	framebufferInfo.width			= renderPass_.SwapChain().Extent().width;
 	framebufferInfo.height			= renderPass_.SwapChain().Extent().height;
 	framebufferInfo.layers			= 1;

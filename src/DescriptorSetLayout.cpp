@@ -11,11 +11,11 @@ DescriptorSetLayout::DescriptorSetLayout(const class VulkanDevice& device, const
 	for (auto& binding : bindings)
 	{
 		VkDescriptorSetLayoutBinding b{};
-		b.binding = binding.binding;
-		b.descriptorCount = binding.descriptorCount;
-		b.descriptorType = binding.type;
-		b.stageFlags = binding.stage;
-		b.pImmutableSamplers = nullptr;
+		b.binding				= binding.binding;
+		b.descriptorCount		= binding.descriptorCount;
+		b.descriptorType		= binding.type;
+		b.stageFlags			= binding.stage;
+		b.pImmutableSamplers	= nullptr;
 
 		layoutBindings.push_back(b);
 	}

@@ -16,6 +16,7 @@ class Semaphore;
 class Fence;
 class Scene;
 class UniformBuffer;
+class DepthBuffer;
 
 static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
@@ -88,6 +89,7 @@ private:
 	std::vector<Semaphore>		renderFinishedSemaphore_;
 	std::vector<Fence>			inFlightFences_;
 	std::vector<UniformBuffer>	uniformBuffers_;
+	DepthBuffer*				depthBuffer_;
 	Scene*						scene_;
 
 	size_t currentFrame_	= 0;

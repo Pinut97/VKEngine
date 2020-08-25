@@ -10,6 +10,7 @@
 #include "Buffer.h"
 #include "Vertex.h"
 #include "Scene.h"
+#include "DepthBuffer.h"
 
 //#include "VulkanApplication.h"
 
@@ -17,6 +18,7 @@ GraphicsPipeline::GraphicsPipeline(
 	const VulkanDevice& device,
 	const VulkanSwapChain& swapChain,
 	const std::vector<UniformBuffer>& uniformBuffers,
+	const DepthBuffer& depthBuffer,
 	const Scene& scene,
 	const bool isWireFrame
 ) : device_(device), swapChain_(swapChain), isWireFrame_(isWireFrame)
@@ -158,6 +160,19 @@ GraphicsPipeline::GraphicsPipeline(
 		vkUpdateDescriptorSets(device_.Handle(), static_cast<uint32_t>(descriptorWrite.size()), descriptorWrite.data(), 0, nullptr);
 
 	}
+
+	//--- DEPTH STENCIL ---
+	VkPipelineDepthStencilStateCreateInfo depthStencilInfo{};
+	depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depthStencilInfo.depthTestEnable = VK_TRUE;
+	depthStencilInfo.depthWriteEnable = VK_TRUE;
+	depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+	depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
+	depthStencilInfo.minDepthBounds = 0.0f;
+	depthStencilInfo.maxDepthBounds = 1.0f;
+	depthStencilInfo.stencilTestEnable = VK_FALSE;
+	depthStencilInfo.front = {};
+	depthStencilInfo.back = {};
 	
 	//--- PIPELINE LAYOUT ---
 	VkDynamicState dynamicStates[] =
@@ -180,7 +195,7 @@ GraphicsPipeline::GraphicsPipeline(
 		throw std::runtime_error("Failed to create pipeline layout!");
 
 	//--- RENDER PASS ---
-	renderPass_ = new class RenderPass(swapChain);
+	renderPass_ = new class RenderPass(swapChain, depthBuffer);
 
 	//--- PIPELINE CREATION ---
 	VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -192,7 +207,7 @@ GraphicsPipeline::GraphicsPipeline(
 	pipelineInfo.pViewportState			= &viewportState;
 	pipelineInfo.pRasterizationState	= &rasterizer;
 	pipelineInfo.pMultisampleState		= &multisampling;
-	pipelineInfo.pDepthStencilState		= nullptr;
+	pipelineInfo.pDepthStencilState		= &depthStencilInfo;
 	pipelineInfo.pColorBlendState		= &colorBlending;
 	pipelineInfo.pDynamicState			= nullptr;
 	pipelineInfo.layout					= pipelineLayout_;

@@ -11,6 +11,7 @@
 #include "UniformBuffer.h"
 
 //temp?
+#include "DepthBuffer.h"
 #include "Buffer.h"
 #include "Scene.h"
 
@@ -89,8 +90,8 @@ void VulkanApplication::initVulkan()
 	createSurface();
 	swapChain_ = new VulkanSwapChain();
 	device_ = new VulkanDevice(&instance);
+	commandPool_ = new CommandPool(*device_, device_->Indices().graphicsFamily.value(), true);
 	createSwapChain();
-	//scene_ = new Scene(*commandPool_);
 	createGraphicsPipeline();
 
 }
@@ -118,7 +119,9 @@ uint32_t VulkanApplication::findMemoryTypes(uint32_t typeFilter, VkMemoryPropert
 
 void VulkanApplication::render(VkCommandBuffer commandBuffer, const uint32_t imageIndex)
 {
-	VkClearValue clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+	std::array<VkClearValue, 2> clearColor;
+	clearColor[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+	clearColor[1].depthStencil = { 1.0f, 0 };
 
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -126,8 +129,8 @@ void VulkanApplication::render(VkCommandBuffer commandBuffer, const uint32_t ima
 	renderPassInfo.framebuffer			= framebuffers_[imageIndex]->Handle();
 	renderPassInfo.renderArea.offset	= { 0,0 };
 	renderPassInfo.renderArea.extent	= swapChain_->Extent();
-	renderPassInfo.clearValueCount		= 1;
-	renderPassInfo.pClearValues			= &clearColor;
+	renderPassInfo.clearValueCount		= static_cast<uint32_t>(clearColor.size());
+	renderPassInfo.pClearValues			= clearColor.data();
 
 	VkBuffer vertexBuffers[] = { scene_->VertexBuffer().Handle() };
 	VkBuffer indexBuffers[] = { scene_->IndexBuffer().Handle() };
@@ -339,6 +342,7 @@ void VulkanApplication::updateUniformBuffer(const uint32_t imageIndex)
 void VulkanApplication::createSwapChain()
 {
 	swapChain_->createSwapChain();
+	depthBuffer_ = new DepthBuffer(*commandPool_, swapChain_->Extent());
 
 	for (size_t i = 0; i != swapChain_->ImageViews().size(); i++)
 	{
@@ -371,19 +375,21 @@ void VulkanApplication::cleanupSwapChain()
 	commandBuffers_->~CommandBuffers();
 	framebuffers_.clear();
 	graphicsPipeline_->~GraphicsPipeline();
+	uniformBuffers_.clear();
 	inFlightFences_.clear();
 	renderFinishedSemaphore_.clear();
 	imageAvailableSemaphore_.clear();
+	depthBuffer_->~DepthBuffer();
 	swapChain_->~VulkanSwapChain();
 }
 
 void VulkanApplication::createGraphicsPipeline()
 {
 	//--- CREATE COMMAND POOL ---
-	commandPool_ = new CommandPool(*device_, device_->Indices().graphicsFamily.value(), true);
+	//commandPool_ = new CommandPool(*device_, device_->Indices().graphicsFamily.value(), true);
 
 	//--- CREATE GRAPHICS PIPELINE --
-	graphicsPipeline_ = new GraphicsPipeline(*device_, *swapChain_, uniformBuffers_, getScene(), false);
+	graphicsPipeline_ = new GraphicsPipeline(*device_, *swapChain_, uniformBuffers_, *depthBuffer_, getScene(), false);
 
 	//--- CREATE FRAMEBUFFERS ---
 	for (const auto& imageView : swapChain_->ImageViews())

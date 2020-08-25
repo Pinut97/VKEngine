@@ -1,8 +1,11 @@
 #include "RenderPass.h"
 #include "VulkanSwapChain.h"
 #include "VulkanDevice.h"
+#include "DepthBuffer.h"
 
-RenderPass::RenderPass(const class VulkanSwapChain& swapChain) : swapChain_(swapChain)
+RenderPass::RenderPass(const class VulkanSwapChain& swapChain, const class DepthBuffer& depthBuffer) : 
+	swapChain_(swapChain),
+	depthBuffer_(depthBuffer)
 {
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format			= swapChain.scPublicVariables.format;
@@ -14,14 +17,34 @@ RenderPass::RenderPass(const class VulkanSwapChain& swapChain) : swapChain_(swap
 	colorAttachment.initialLayout	= VK_IMAGE_LAYOUT_UNDEFINED;
 	colorAttachment.finalLayout		= VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+	VkAttachmentDescription depthAttachment;
+	depthAttachment.format			= depthBuffer.Format();
+	depthAttachment.samples			= VK_SAMPLE_COUNT_1_BIT;
+	depthAttachment.loadOp			= VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachment.storeOp			= VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.stencilLoadOp	= VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthAttachment.stencilStoreOp	= VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.initialLayout	= VK_IMAGE_LAYOUT_UNDEFINED;
+	depthAttachment.finalLayout		= VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	depthAttachment.flags			= 0;
+
 	VkAttachmentReference colorAttachmentRef{};
 	colorAttachmentRef.attachment	= 0;
 	colorAttachmentRef.layout		= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkAttachmentReference depthAttachmentRef{};
+	depthAttachmentRef.attachment	= 1;
+	depthAttachmentRef.layout		= VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint		= VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass.colorAttachmentCount	= 1;
 	subpass.pColorAttachments		= &colorAttachmentRef;
+	subpass.pDepthStencilAttachment = &depthAttachmentRef;
+
+	std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
+
 	/*
 	VkSubpassDependency dependency{};
 	dependency.srcSubpass		= VK_SUBPASS_EXTERNAL;
@@ -33,8 +56,8 @@ RenderPass::RenderPass(const class VulkanSwapChain& swapChain) : swapChain_(swap
 	*/
 	VkRenderPassCreateInfo renderPassInfo{};
 	renderPassInfo.sType			= VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount	= 1;
-	renderPassInfo.pAttachments		= &colorAttachment;
+	renderPassInfo.attachmentCount	= static_cast<uint32_t>(attachments.size());
+	renderPassInfo.pAttachments		= attachments.data();
 	renderPassInfo.subpassCount		= 1;
 	renderPassInfo.pSubpasses		= &subpass;
 	renderPassInfo.dependencyCount	= 0;

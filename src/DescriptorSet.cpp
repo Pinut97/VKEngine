@@ -14,10 +14,10 @@ DescriptorSet::DescriptorSet(
 	std::vector<VkDescriptorSetLayout> layouts(size, layout.Handle());
 
 	VkDescriptorSetAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = descriptorPool.Handle();
-	allocInfo.descriptorSetCount = size;
-	allocInfo.pSetLayouts = layouts.data();
+	allocInfo.sType					= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool		= descriptorPool.Handle();
+	allocInfo.descriptorSetCount	= size;
+	allocInfo.pSetLayouts			= layouts.data();
 
 	descriptorSet_.resize(size);
 

@@ -4,6 +4,7 @@
 #include "Buffer.h"
 #include "HelperFunctions.h"
 #include "CommandPool.h"
+#include "DepthBuffer.h"
 
 Image::Image(const VulkanDevice& device, VkExtent2D extent, VkFormat format) :
 	Image(device, extent, format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT)
@@ -80,7 +81,16 @@ void Image::transitionImageLayout(CommandPool& commandPool, VkImageLayout newLay
 	barrier.subresourceRange.levelCount		= 1;
 	barrier.subresourceRange.baseArrayLayer = 0;
 	barrier.subresourceRange.layerCount		= 1;
-	barrier.subresourceRange.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
+
+	if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+		if (DepthBuffer::hasStencilComponent(format_)) {
+			barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
+		}
+	}
+	else
+		barrier.subresourceRange.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
 
 	if (imageLayout_ == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
 		barrier.srcAccessMask = 0;
@@ -95,6 +105,13 @@ void Image::transitionImageLayout(CommandPool& commandPool, VkImageLayout newLay
 
 		sourceStage			= VK_PIPELINE_STAGE_TRANSFER_BIT;
 		destinationStage	= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+	else if (imageLayout_ == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+		sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 	}
 	else
 		throw std::invalid_argument("unsupported layout transition!");
