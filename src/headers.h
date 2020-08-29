@@ -27,6 +27,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+/******* OBJ LOADER *********/
+//#define TINYOBJLOADER_IMPLEMENTATION
+//#include <tiny_obj/tiny_obj_loader.h>
+
 /******** STB HEADERS ***********/
 //#define STB_IMAGE_IMPLEMENTATION
 //#include <stb/stb_image.h>

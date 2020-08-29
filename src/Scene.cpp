@@ -7,6 +7,7 @@
 #include "Buffer.h"
 #include "ImageView.h"
 #include "Sampler.h"
+#include "Model.h"
 
 template <class T>
 void CopyFromStagingBuffer(CommandPool& commandPool, Buffer& dstBuffer, const std::vector<T>& content)
@@ -50,6 +51,7 @@ void createDeviceBuffer(
 Scene::Scene(class CommandPool& commandPool) : 
 	commandPool_(commandPool)
 {
+	/*
 	vertices = {
 		{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
 		{{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
@@ -66,14 +68,22 @@ Scene::Scene(class CommandPool& commandPool) :
 		0, 1, 2, 2, 3, 0,
 		4, 5, 6, 6, 7, 4
 	};
+	*/
+
+	std::vector<Texture> textures;
+	//textures.push_back(Texture::loadTexture("../../data/textures/sanFrancisco.jpg"));
+	textures.push_back(Texture::loadTexture("../../data/textures/viking_room.png"));
+
+	models_.push_back(Model::loadModel("../../data/models/viking_room.obj"));
+
+	for (const auto& model : models_)
+	{
+		vertices.insert(vertices.end(), model.vertices().begin(), model.vertices().end());
+		indices.insert(indices.end(), model.indices().begin(), model.indices().end());
+	}
 
 	createDeviceBuffer(commandPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertices, vertexBuffer_, vertexBufferMemory_);
 	createDeviceBuffer(commandPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, indices, indexBuffer_, indexBufferMemory_);
-
-	//textures_.push_back(Texture::loadTexture("../../data/textures/sanFrancisco.jpg"));
-
-	std::vector<Texture> textures;
-	textures.push_back(Texture::loadTexture("../../data/textures/sanFrancisco.jpg"));
 
 	textureImages_.reserve(textures.size());
 	textureImageViewHandles_.resize(textures.size());
@@ -83,7 +93,6 @@ Scene::Scene(class CommandPool& commandPool) :
 		textureImageViewHandles_[i] = textureImages_[i]->ImageView().Handle();
 		textureSamplerHandles_[i] = textureImages_[i]->Sampler().Handle();
 	}
-	//textureImages_.push_back(std::unique_ptr<TextureImage>(new TextureImage(commandPool, Texture::loadTexture("../../data/textures/sanFrancisco.jpg"))));
 
 }
 

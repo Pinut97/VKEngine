@@ -9,6 +9,7 @@
 #include "Semaphore.h"
 #include "Fence.h"
 #include "UniformBuffer.h"
+#include "Camera.h"
 
 //temp?
 #include "DepthBuffer.h"
@@ -43,6 +44,11 @@ static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
 	app->frambufferResized = true;
 }
 
+void onKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	
+}	
+
 VulkanApplication::VulkanApplication() 
 {
 	appInstance = this;
@@ -64,6 +70,7 @@ void VulkanApplication::run()
 {
 	initWindow();
 	initVulkan();
+	initApp();
 	mainLoop();
 }
 
@@ -77,6 +84,8 @@ void VulkanApplication::initWindow()
 	window = glfwCreateWindow(WIDTH, HEIGHT, "VkEngine", nullptr, nullptr);
 	glfwSetWindowUserPointer(window, this);
 	glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+
+	//glfwSetKeyCallback(window, onKeyCallback);
 }
 
 void VulkanApplication::initVulkan() 
@@ -93,15 +102,29 @@ void VulkanApplication::initVulkan()
 	commandPool_ = new CommandPool(*device_, device_->Indices().graphicsFamily.value(), true);
 	createSwapChain();
 	createGraphicsPipeline();
+}
 
+void VulkanApplication::initApp()
+{
+	camera_ = new Camera();
+	//camera_->eye_ = glm::vec3(20.0f, 20.0f, 20.0f);
+	//camera_->setPerspective(45.0f, (float)swapChain_->Extent().width / (float)swapChain_->Extent().height, 0.1f, 1000.0f);
+	//camera_->center_ = glm::vec3(0, 0, 0);
+	//camera_->up_ = glm::vec3(0, 0, 1);
+	//camera_->matrices_.view = glm::lookAt(glm::vec3(20.0f, 20.0f, 20.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	//camera_->matrices_.projection = glm::perspective(glm::radians(45.0f), swapChain_->Extent().width / (float)swapChain_->Extent().height, 0.1f, 1000.0f);
 }
 
 void VulkanApplication::mainLoop()
 {
 	while (!glfwWindowShouldClose(window))
 	{
+		float currentTime = glfwGetTime();
+		deltaTime_ = currentTime - lastTime_;
+		lastTime_ = currentTime;
 		glfwPollEvents();
 		drawFrame();
+		input(window);
 	}
 	vkDeviceWaitIdle(device_->Handle());
 }
@@ -328,12 +351,24 @@ void VulkanApplication::updateUniformBuffer(const uint32_t imageIndex)
 	static auto startTime = std::chrono::high_resolution_clock::now();
 
 	auto currentTime = std::chrono::high_resolution_clock::now();
-	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+	float time = std::chrono::duration<float, std::chrono::milliseconds::period>(currentTime - startTime).count();
 
 	UniformBufferObject ubo = {};
-	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), swapChain_->Extent().width / (float)swapChain_->Extent().height, 0.1f, 10.0f);
+	ubo.model = glm::mat4(1.0f);
+	ubo.view = glm::lookAt(camera_->eye_, camera_->center_, camera_->up_);
+	//ubo.proj[1][1] *= -1;
+
+	//ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	//ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(-45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	//glm::vec3 eye = glm::vec3(20.0f, 20.0f, 20.0f);
+	//glm::vec3 center = glm::vec3(0, 0, 0);
+	//glm::vec3 up = glm::vec3(0, 0, 1);
+	//ubo.view = glm::lookAt(glm::vec3(20.0f, 20.0f, 20.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.proj = glm::perspective(glm::radians(45.0f), swapChain_->Extent().width / (float)swapChain_->Extent().height, 0.1f, 1000.0f);
+
+	//ubo.view = camera_->View();
+	//ubo.proj = camera_->Projection();
 	ubo.proj[1][1] *= -1;
 
 	uniformBuffers_[imageIndex].setValue(ubo);
@@ -446,4 +481,30 @@ const Scene& VulkanApplication::getScene()
 		scene_ = new Scene(*commandPool_);
 	}
 	return *scene_;
+}
+
+void VulkanApplication::input(GLFWwindow* window)
+{
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, true);
+
+	float speed = 5.0f * deltaTime_;
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+		glm::vec3 vector = glm::vec3(0.0f, 0.0f, -1.0f) * speed;
+		camera_->eye_ += vector;
+	}
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+	{
+		glm::vec3 vector = glm::vec3(0.0f, 0.0f, 1.0f) * speed;
+		camera_->eye_ += vector;
+	}
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+		camera_->eye_ += glm::vec3(-1.0f, 0.0f, 0.0f) * speed;
+	}
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+		camera_->eye_ += glm::vec3(1.0f, 0.0f, 0.0f) * speed;
+		camera_->center_ = camera_->center_ + glm::vec3(1.0f, 0.0f, 0.0f) * speed;
+	}
+	//	camera_->move(glm::vec3(0.0f, 0.0f, -1.0f) * speed);
 }

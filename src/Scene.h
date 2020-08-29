@@ -7,6 +7,7 @@ struct Vertex;
 class Texture;
 class TextureImage;
 class Buffer;
+class Model;
 
 class Scene final {
 public:
@@ -33,6 +34,8 @@ private:
 
 	std::unique_ptr<Buffer> indexBuffer_;
 	std::unique_ptr<DeviceMemory> indexBufferMemory_;
+
+	std::vector<Model> models_;
 
 	//std::vector<Texture> textures_;
 	std::vector<VkImageView> textureImageViewHandles_;

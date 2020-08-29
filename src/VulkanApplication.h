@@ -17,6 +17,7 @@ class Fence;
 class Scene;
 class UniformBuffer;
 class DepthBuffer;
+class Camera;
 
 static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
@@ -36,7 +37,15 @@ public:
 	GLFWwindow* window;
 	bool frambufferResized = false;
 
+	Camera* camera_;
+	float deltaTime_;
+	float lastTime_ = 0.0f;
+
 	void run();
+	void onKey();
+	void input(GLFWwindow* window);
+	void onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
+
 	const Scene& getScene();
 
 	VkSurfaceKHR Surface() const { return surface; }
@@ -53,6 +62,7 @@ private:
 
 	void initWindow();
 	void initVulkan();
+	void initApp();
 	void mainLoop();
 	void render(VkCommandBuffer commandBuffer, const uint32_t inmageIndex);
 	void drawFrame();
